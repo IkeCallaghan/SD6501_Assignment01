@@ -69,7 +69,7 @@ public class Registration extends AppCompatActivity {
                     Toast.makeText(Registration.this, "User has been registered.", Toast.LENGTH_SHORT).show();
 
                     //Move user to HomePage.
-                    startActivity(new Intent(Registration.this, MainActivity.class));
+                    startActivity(new Intent(Registration.this, HomePage.class));
                 }
             }
         });

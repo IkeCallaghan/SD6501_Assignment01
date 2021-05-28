@@ -1,120 +1,124 @@
 package com.example.sd6501_assignment1_2192400;
 
-import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
-import android.view.Menu;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
-import com.google.android.material.navigation.NavigationView;
-
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
-import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 
 public class HomePage extends AppCompatActivity {
 
-    private AppBarConfiguration mAppBarConfiguration;
+    //Get user information object from the UserInfo class.
+    public static UserInfo UserInfo;
+    SharedPreferences sharedPreferences;
+
+    //Boolean value (True or False), used for checking validity of user input (Log-in field).
+    boolean isValid = false;
+
+    //Declare UI elements.
+    private EditText Name;
+    private EditText Password;
+    private TextView AttemptsInfo;
+    private Button Login;
+    private Button RegisterMain;
+
+    //Counter for log-in attempts, can be changed from here.
+    private int counter = 3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_home_page);
-        Toolbar toolbar = findViewById(R.id.toolbar);        setSupportActionBar(toolbar);
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        setContentView(R.layout.activity_main);
+
+        //Implementing XML elements to class
+        Name = findViewById(R.id.nameEnter);
+        Password = findViewById(R.id.passwordEnter);
+        AttemptsInfo = findViewById(R.id.attempts);
+        Login = findViewById(R.id.btnLogin);
+        RegisterMain = findViewById(R.id.btnRegisterMain);
+
+        sharedPreferences = getApplicationContext().getSharedPreferences("UserInfoDB", MODE_PRIVATE);
+
+        //If User information exist, retrieve user information.
+        if (sharedPreferences != null) {
+
+            String savedUsername = sharedPreferences.getString("Username", "");
+            String savedPassword = sharedPreferences.getString("Password", "");
+
+            Registration.userinfo = new UserInfo(savedUsername, savedPassword);
+        }
+
+        RegisterMain.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(HomePage.this, Registration.class));
+            }
+        });
+
+        //On click function for log-in button
+        Login.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                //Alert Box to prevent the user from accidentally logging-out on pressing the back button.
-                AlertDialog.Builder builder = new AlertDialog.Builder( HomePage.this);
-                builder.setMessage("Are you sure you want to log-out?")
-                        .setCancelable(false)
-                        .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
+                //Retrieve user input
+                String userName = Name.getText().toString();
+                String userPassword = Password.getText().toString();
 
-                                dialogInterface.cancel();
-                            }
-                        })
+                //Check if input fields are empty
+                if (userName.isEmpty() || userPassword.isEmpty()) {
 
+                    //Display pop-up message prompting user to re-enter valid input.
+                    Toast.makeText(HomePage.this, "Please enter name and password!", Toast.LENGTH_LONG).show();
 
-                        .setPositiveButton( "Yes", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                startActivity(new Intent(HomePage.this, MainActivity.class));
-                                Toast.makeText(HomePage.this, "You have successfully logged-out!", Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                AlertDialog alertDialog = builder.create();
-                alertDialog.show();
-            }
+                } else {
 
-        });
+                    //Validate user input
+                    isValid = validate(userName, userPassword);
 
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        NavigationView navigationView = findViewById(R.id.nav_view);
+                    //If input is not valid, Decrease attempt counter.
+                    if (!isValid) {
 
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-        mAppBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.nav_home, R.id.nav_aquarium)
-                .setDrawerLayout(drawer)
-                .build();
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
-        NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
-        NavigationUI.setupWithNavController(navigationView, navController);
-    }
+                        //Decrease counter
+                        counter--;
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.home_page, menu);
-        return true;
-    }
+                        //Update attempt count message on log-in page.
+                        AttemptsInfo.setText("You have " + counter + " attempts remaining!");
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
-        return NavigationUI.navigateUp(navController, mAppBarConfiguration)
-                || super.onSupportNavigateUp();
-    }
-
-    //Function to present the user from accidentally logging-out on pressing the back button.
-    @Override
-    public void onBackPressed() {
-
-        AlertDialog.Builder builder = new AlertDialog.Builder( this);
-
-        //Set warning message.
-        builder.setMessage("Are you sure you want to log-out?")
-                .setCancelable(false)
-
-                //Set No button.
-        .setNegativeButton("No", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-
-                dialogInterface.cancel();
-            }
-        })
-                //Set Yes button.
-                .setPositiveButton( "Yes", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        HomePage.super.onBackPressed();
+                        //If counter reaches 0, disable log-in button.
+                        //This can be overridden by the user simply clicking the register button or re-opening the application,
+                        //I want to change this in the future so there is a log-in timer for too many incorrect attempts.
+                        if (counter == 0) {
+                            Login.setEnabled(false);
+                            Toast.makeText(HomePage.this, "You have used all your attempts try again later!", Toast.LENGTH_LONG).show();
+                        }
+                        //If input is wrong, display pop-up message informing the user and prompting them to re-enter.
+                        else {
+                            Toast.makeText(HomePage.this, "Incorrect information entered, please try again!", Toast.LENGTH_LONG).show();
+                        }
                     }
-                });
+                    //else (if valid).
+                    else {
 
-        AlertDialog alertDialog = builder.create();
-        alertDialog.show();
+                        //Accept user input, move to HomePage activity.
+                        //Print personalized Welcome back message, including the users name.
+                        startActivity(new Intent(HomePage.this, AquariumInformation.class));
+                        Toast.makeText(HomePage.this, "Welcome back " + userName + "!", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        });
+    }
+
+    //Validate user input from the UserInfo class.
+    private boolean validate(String userName, String userPassword) {
+        if (Registration.userinfo != null) {
+            return userName.equals(Registration.userinfo.getUsername()) && userPassword.equals(Registration.userinfo.getUserPassword());
+        }
+        return false;
     }
 }
