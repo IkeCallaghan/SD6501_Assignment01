@@ -52,9 +52,5 @@ public class HomePageTest {
         onView(withId(R.id.btnRegisterMain)).check(ViewAssertions.matches(isDisplayed()));
     }
 
-    @Test
-    public void test_visibility_register_main_button() {
-        onView(withId(R.id.btnRegister)).check(ViewAssertions.matches(isDisplayed()));
-    }
 }
 
